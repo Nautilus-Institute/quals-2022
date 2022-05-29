@@ -1,0 +1,14 @@
+Name: Hoju
+Pronouns: he/him
+
+Past CTF Teams:
+WCSC
+0x28 Thieves
+Hates Irony
+Legitimate Business Syndicate
+
+Favorite CVE: CVE-2019-8641
+
+Hoju has participated in CTFs since 2007 and has been stoking the fires of his love/hate relationship with Vegas since DEF CON 15.
+
+He has written some challenges here or there, but his primary focus has been on developing CTF game visuals in Unreal Engine and attempting to be a DJ for a weekend to make sure attendees are thoroughly entertained.

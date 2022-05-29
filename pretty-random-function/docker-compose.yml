@@ -1,0 +1,6 @@
+version: "3.0"
+services:
+  router:
+    ports:
+      - "31337:4433"
+    image: pretty-random-function-challenge

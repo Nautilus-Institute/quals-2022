@@ -1,0 +1,23 @@
+import core.widgets;
+import core.material;
+import local;
+
+widget root = Container(
+  child: Column(
+  children: [
+    Row(children: [
+      Text(text: "From "),
+      Expanded(child: Text(
+        text: data.author.user,
+        style: { color: 0xff009DCA },
+      )),
+    ]),
+    Row(children: [
+      Expanded(child: Text(text: data.data.message)),
+    ]),
+    Row(children: [
+      URLImage(url: data.data.image),
+    ])
+  ]),
+);
+

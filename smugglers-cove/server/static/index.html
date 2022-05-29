@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Smuggler's Cove</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+  <div class="ocean">
+    <div class="wave"></div>
+  </div>
+  <section class="section">
+    <div class="container">
+      <h1 class="title">
+        Imperial Cargo Checkpoint
+      </h1>
+      <p class="subtitle">
+      All LUA cargo subject to search and seizure
+      </p>
+      <noscript>Arrr, Javascript is required for this checkpoint!</noscript>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-6" style="position:relative">
+        <textarea class="textarea is-large has-fixed-size" maxlength=433 id="code" style="height: calc( 100vh - 300px )">
+function my_ship()
+  print("Nothing suspicious here!");
+end
+my_ship()
+my_ship()
+cargo(my_ship, 0)</textarea>
+        <div class="pbox"><progress id="bar" class="mb-1 mt-3 progress is-small" value="0" max="100"></progress></div>
+        <input class="mt-1 input is-fullwidth" placeholder="Ticket please" id="ticket">
+        <button id="run" class="button is-primary is-fullwidth mt-1" onclick="run_code()">Inspect Cargo</button>
+      </div>
+      <div class="column is-4">
+        <div class="control" style="height: 100%">
+        <textarea class="textarea has-fixed-size" style="height: 100%" id="output" placeholder="Run the code to get the output!" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+	<script src="/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+*
+!src
+!go.*
+!Makefile
+!nginx_default
+!supervisord.conf
+!widgets

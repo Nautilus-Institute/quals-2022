@@ -1,0 +1,48 @@
+import core.widgets;
+import core.material;
+import local;
+
+widget root {loaded: false} = Container(
+  child: Column(
+  children: [
+    Row(children: [
+      Text(text: "From "),
+      Text(
+        text: data.author.user,
+        style: { color: 0xff009DCA },
+      ),
+    ]),
+
+    Padding(padding: [0.0,5.0,0.0,0.0],
+      child:Text(text: data.data.title),
+    ),
+    switch state.loaded {
+    true: 
+      Column(children: [
+        ...for item in data.poll_options:
+          Row(children: [
+            Padding(child: ElevatedButton(child:
+              Text(text: item.text),
+              onPressed: event "api_post" {
+                path:data.data.apiVote,
+                body: {selection: item.text},
+              },
+            ), padding: [0.0,5.0,10.0,0.0]),
+            Text(text:item.count),
+          ]),
+        TextButton(
+          child: Text(text: "Refresh", style:{color:0xffFF9E9E}),
+          onPressed: set state.loaded = false,
+        ),
+      ]),
+    default:
+      ApiMapper(
+        url: data.data.apiGet,
+        jsonKey: "options",
+        dataKey: "poll_options",
+        onLoaded: set state.loaded = true,
+      ),
+    }
+  ]),
+);
+

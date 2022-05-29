@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  smugglers_cove_server:
+    ports:
+      - "8080:80"
+    volumes:
+      - ./launchersock/:/launchersock
+      - ./server/static:/static
+    image: smugglers-cove-server
+    #command: id
+  smugglers_cove_launcher:
+    volumes:
+      - ./code:/code
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./launchersock:/launchersock
+    #TODO change to your absolute path on your host
+    command: -volume /abs/path/smugglers-cove/code -code /code -sock /launchersock/launchersock
+    image: smugglers-cove-launcher
+

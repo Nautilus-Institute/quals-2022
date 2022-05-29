@@ -1,0 +1,7 @@
+version: "3.0"
+services:
+  router:
+    ports:
+      - "31337:31337"
+    image: router-challenge
+

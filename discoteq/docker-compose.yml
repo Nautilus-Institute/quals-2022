@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  discoteq_server:
+    ports:
+      - "8080:80"
+    volumes:
+      - ./launchersock/:/launchersock
+    image: discoteq-server
+  discoteq_launcher:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./launchersock:/launchersock
+    command: -sock /launchersock/launchersock
+    image: discoteq-launcher
+

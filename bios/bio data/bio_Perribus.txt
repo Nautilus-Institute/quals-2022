@@ -1,0 +1,9 @@
+Name: Perribus
+Pronouns: She/Her
+
+Past CTF Teams:
+RPISEC
+
+Favorite CVE: tcache
+
+I should be finishing my challenge right now

@@ -1,0 +1,15 @@
+Name: Fuzyll
+Pronouns: he/him
+
+Past CTF Teams:
+0x28 Thieves
+Hates Irony
+Men in Black Hats
+Mammon Machine
+Legitimate Business Syndicate
+
+Favorite CVE: Unknown
+
+Fuzyll has been playing in and running CTFs since 2010. His highest finish in DEF CON Finals as a player was 2nd in 2013 with Men in Black Hats.
+
+He was previously an organizer and challenge author for Ghost in the Shellcode (2012-2015), DEF CON (2017), and Hack-a-Sat.

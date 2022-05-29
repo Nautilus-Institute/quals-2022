@@ -1,0 +1,10 @@
+Name: Thing2
+Pronouns: he/him
+
+Past CTF Teams:
+Hates Irony
+Legitimate Business Syndicate
+
+Favorite CVE: CVE-2008-0166
+
+Thing2 has written challenges for multiple CTF's and played in several. He really doesn't know what he's doing and just meanders through life, confused and afraid.

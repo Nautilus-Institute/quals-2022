@@ -1,0 +1,17 @@
+Name: ThomasWindmill
+Pronouns: he/him
+
+Past CTF Teams:
+0x28 Thieves
+Team Awesome
+Samurai
+Legitimate Business Syndicate
+Shellphish
+
+Favorite CVE: CVE-2003-0352
+
+Thomas used to capture flags, now he works on the supply side.
+
+He has been coming to DEF CON since DEF CON 14, and got hooked on CTF in the Kenshoto era.
+
+While he likes deep, complicated binary challenges, he is also working on how to make the game interesting and engaging to other parts of the cyber security community.

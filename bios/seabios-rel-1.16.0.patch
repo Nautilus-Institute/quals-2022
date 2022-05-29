@@ -1,0 +1,659 @@
+diff --git a/Makefile b/Makefile
+index c108f87..2bc15eb 100644
+--- a/Makefile
++++ b/Makefile
+@@ -38,7 +38,7 @@ SRCBOTH=misc.c stacks.c output.c string.c block.c cdrom.c disk.c	\
+     hw/mpt-scsi.c
+ SRC16=$(SRCBOTH)
+ SRC32FLAT=$(SRCBOTH) post.c e820map.c malloc.c romfile.c x86.c		\
+-    optionroms.c pmm.c font.c boot.c bootsplash.c jpeg.c bmp.c		\
++    optionroms.c pmm.c font.c boot.c bootsplash.c bioscreen.c jpeg.c bmp.c		\
+     tcgbios.c sha1.c hw/pcidevice.c hw/ahci.c hw/pvscsi.c		\
+     hw/usb-xhci.c hw/usb-hub.c hw/sdcard.c fw/coreboot.c		\
+     fw/lzmadecode.c fw/multiboot.c fw/csm.c fw/biostables.c		\
+diff --git a/src/bioscreen.c b/src/bioscreen.c
+new file mode 100644
+index 0000000..63906b6
+--- /dev/null
++++ b/src/bioscreen.c
+@@ -0,0 +1,500 @@
++#include "bregs.h" // struct bregs
++#include "config.h" // CONFIG_*
++#include "farptr.h" // FLATPTR_TO_SEG
++#include "malloc.h" // free
++#include "output.h" // dprintf
++#include "romfile.h" // romfile_loadfile
++#include "stacks.h" // call16_int
++#include "std/vbe.h" // struct vbe_info
++#include "string.h" // memset
++#include "util.h" // enable_bootsplash
++
++u16 *FontOffset;
++extern u8 FontBMP_lzma[];
++extern u16 FontBMP_lzma_len;
++
++u8 *FontBMP;
++u8 *FontBMP_Data;
++u16 FontBMP_width;
++u16 FontBMP_height;
++
++u8 *bio_framebuffer;
++u16 bio_bytes_per_scanline;
++u16 bio_xres, bio_yres;
++
++u8 *Fire_Buffer;
++u16 Fire_Width, Fire_Height;
++u32 Fire_Random;
++
++#define GetFirePixelCalc(x,y) (((y)*Fire_Width)+(x))
++#define GetFirePixel(x,y) Fire_Buffer[GetFirePixelCalc(x,y)]
++#define GetFirePixelTemp(x,y) Fire_Buffer_Temp[GetFirePixelCalc(x,y)]
++void RenderFlame();
++
++char **Names;
++int NameCount;
++
++#define SPACE_WIDTH 12
++#define HEIGHT_PADDING 5
++#define LETTER_PADDING 2
++#define IMAGE_PADDING 10
++
++u8 *Fire_Palette;
++
++int RenderCharacter(u16 X, u16 Y, char Character)
++{
++	u16 CharWidth;
++	u16 CurX, CurY;
++	u8 *FontBMPOffset;
++	u8 *FireDataOffset;
++	u8 *framebuffer_pos;
++	u32 offset;
++
++	//we assume 24bpp, 3 bytes per pixel
++
++	//get char width
++	CharWidth = FontOffset[Character - 0x20 + 1] - FontOffset[Character - 0x20];
++	FontBMPOffset = &FontBMP_Data[((FontOffset[Character - 0x20]) * 3)];
++	FireDataOffset = &Fire_Buffer[FontOffset[Character - 0x20]];
++
++	offset = bio_bytes_per_scanline;
++	offset *= Y;
++	offset += (X * 3);
++
++	framebuffer_pos = &((char *)bio_framebuffer)[offset];
++	for(CurY = 0; CurY < FontBMP_height; CurY++) {
++		for(CurX = 0; CurX < CharWidth; CurX++) {
++			if(*(u32 *)&FontBMPOffset[CurX*3] & 0x00ffffff) {
++				framebuffer_pos[CurX * 3] = Fire_Palette[(FireDataOffset[CurX] * 3) + 2];
++				framebuffer_pos[(CurX * 3) + 1] = Fire_Palette[(FireDataOffset[CurX] * 3) + 1];
++				framebuffer_pos[(CurX * 3) + 2] = Fire_Palette[(FireDataOffset[CurX] * 3) + 0];
++			}
++			else {
++				framebuffer_pos[CurX * 3] = 0;
++				framebuffer_pos[(CurX * 3) + 1] = 0;
++				framebuffer_pos[(CurX * 3) + 2] = 0;
++			}
++		}
++		framebuffer_pos += bio_bytes_per_scanline;
++		FontBMPOffset += FontBMP_width;
++		FireDataOffset += Fire_Width;
++	}
++
++	return CharWidth;
++}
++
++void RenderString(u16 X, u16 Y, char *Str)
++{
++	while(*Str) {
++		X += RenderCharacter(X, Y, *Str);
++		Str++;
++		X += LETTER_PADDING;
++	};
++}
++
++void EraseScreen()
++{
++	void *temp_data;
++
++	temp_data = malloc_tmphigh(bio_bytes_per_scanline);
++	memset(temp_data, 0, bio_bytes_per_scanline);
++
++	//wipe out the framebuffer to black
++	for(int y = 0; y < bio_yres; y++)
++		iomemcpy(&bio_framebuffer[y*bio_bytes_per_scanline], temp_data, bio_bytes_per_scanline);
++
++	free(temp_data);
++}
++
++void InitBIO()
++{
++	int filesize;
++	u32 bmp_data_offset;
++	char *NameData;
++	char *CurName;
++
++	Fire_Palette = romfile_loadfile("fire.pal", &filesize);
++	FontOffset = romfile_loadfile("font.dat", &filesize);
++	FontBMP = romfile_loadfile("font.bmp", &filesize);
++
++	//yes hacky, don't care, we won't ever free it
++	bmp_data_offset = *(u32 *)&FontBMP[0x0a];
++	dprintf(3, "bmp data offset: %04x\n", bmp_data_offset);
++	FontBMP_Data = &FontBMP[bmp_data_offset];
++
++	FontBMP_width = *(u16 *)&FontBMP[0x12];
++	FontBMP_height = *(u16 *)&FontBMP[0x16];
++
++	dprintf(3, "bmp width: %d\n", FontBMP_width);
++	dprintf(3, "bmp height: %d\n", FontBMP_height);
++
++	Fire_Width = FontBMP_width;
++	Fire_Height = FontBMP_height + (FontBMP_height >> 1);
++	Fire_Buffer = malloc_tmphigh(Fire_Height * Fire_Width);
++	memset(Fire_Buffer, 0, Fire_Width * Fire_Height);
++	Fire_Random = 0x7d1b9bfb;
++
++	FontBMP_width *= 3;
++	if(FontBMP_width % 4)
++		FontBMP_width += (4 - (FontBMP_width % 4));
++
++	//load names up
++	NameData = romfile_loadfile("names.txt", &filesize);
++
++	//get a count of them
++	NameCount = 0;
++	CurName = NameData;
++	while(*CurName) {
++		NameCount += 1;
++		CurName += strlen(CurName) + 1;
++	};
++
++	//allocate memory for pointers to them
++	Names = (char *)malloc_high(NameCount * sizeof(char *));
++
++	//now fill them in
++	CurName = NameData;
++	for(NameCount = 0; *CurName; NameCount++) {
++		Names[NameCount] = CurName;
++		CurName += strlen(CurName) + 1;
++	}
++	dprintf(3, "Name count: %d\n", NameCount);
++}
++
++void RenderBIOImage(u32 index)
++{
++	int filesize;
++	u8 *BioBMP;
++	u8 *BioBMP_Data;
++	u32 data_offset;
++	u32 BioBMP_width, BioBMP_height;
++	u8 *bio_framebuffer_pos = bio_framebuffer;
++	char NameBuffer[100];
++
++	data_offset = strlen(Names[index]);
++	memcpy(NameBuffer, Names[index], data_offset);
++	memcpy(&NameBuffer[data_offset], ".bmp", 5);
++	BioBMP = romfile_loadfile(NameBuffer, &filesize);
++
++	//yes hacky, don't care, we won't ever free it
++	data_offset = *(u32 *)&BioBMP[0x0a];
++	dprintf(3, "bmp data offset: %04x\n", data_offset);
++	BioBMP_Data = &BioBMP[data_offset];
++
++	BioBMP_width = *(u32 *)&BioBMP[0x12];
++	BioBMP_height = *(u32 *)&BioBMP[0x16];
++
++	dprintf(3, "bmp width: %d\n", BioBMP_width);
++	dprintf(3, "bmp height: %d\n", BioBMP_height);
++
++	//calculate center of the image onto the top/left corner
++	data_offset = (bio_xres / 3) + 1;
++	data_offset -= BioBMP_width;
++	data_offset >>= 1;
++
++	//shift left for the number of pixels
++	bio_framebuffer_pos += data_offset * 3;
++
++	//now shift top to bottom for center in left corner
++	data_offset = bio_yres / 2;
++	data_offset -= BioBMP_height;
++	data_offset >>= 1;
++	bio_framebuffer_pos += data_offset * bio_bytes_per_scanline;
++
++	BioBMP_width *= 3;
++	if(BioBMP_width % 4)
++		BioBMP_width += (4 - (BioBMP_width % 4));
++
++	for(int i = 0; i < BioBMP_height; i++) {
++		iomemcpy(bio_framebuffer_pos, BioBMP_Data, BioBMP_width);
++		bio_framebuffer_pos += bio_bytes_per_scanline;
++		BioBMP_Data += BioBMP_width;
++	}
++
++	free(BioBMP);
++}
++
++u16 GetCharWidth(char Char)
++{
++	return FontOffset[Char - 0x20 + 1] - FontOffset[Char - 0x20];
++}
++
++u16 GetWordWidth(char *Text)
++{
++	u16 WordWidth = 0;
++	int i;
++
++	for(i = 0; Text[i] && Text[i] != ' ' && Text[i] != '\n'; i++) {
++		WordWidth += GetCharWidth(Text[i]) + LETTER_PADDING;
++	}
++	return WordWidth;
++}
++
++u16 GetStringWidth(char *Text)
++{
++	u16 StringWidth = 0;
++	while(*Text) {
++		if(StringWidth) StringWidth += SPACE_WIDTH;	//space
++		StringWidth += GetWordWidth(Text);
++		while(*Text && *Text != ' ' && *Text != '\n')
++			Text++;
++
++		if(*Text)
++			Text++;
++	}
++
++	return StringWidth;
++}
++
++void HandleMore()
++{
++	int KeyStroke;
++
++	RenderString(0, bio_yres - FontBMP_height, "<more>");
++	while(1) {
++		KeyStroke = get_keystroke_full(5000) & 0xff;
++		if((KeyStroke == 0x20) || (KeyStroke == 0x0d))
++			break;
++	}
++	EraseScreen();
++}
++
++char *RenderBIOTextData(char *Text, int FirstPage)
++{
++	int i;
++	int X, Y;
++	int j;
++	u16 WordWidth;
++	int filesize;
++	char NameBuffer[100];
++	char *CurText;
++	int KeyStroke;
++
++
++	X = 0;
++	Y = 0;
++	j = 0;
++	CurText = Text;
++
++	if(FirstPage)
++		X = (bio_xres / 3) + IMAGE_PADDING;
++
++	for(i = 0; *CurText; i+=j, CurText+=j) {
++		if(*CurText == '\n') {
++			if(CurText[-1] == '\n') {
++				//previous was also newline, small gap
++				Y += FontBMP_height / 2;
++
++				if((Y+(FontBMP_height*2)) >= bio_yres) {
++					return CurText;
++				}
++			}
++			else {
++				//new line
++				Y += FontBMP_height + HEIGHT_PADDING;
++
++				if(FirstPage && (Y < ((bio_yres / 2) + IMAGE_PADDING)))
++					X = (bio_xres / 3) + IMAGE_PADDING;
++				else
++					X = 0;
++
++				if((Y+FontBMP_height*2) > bio_yres) {
++					return CurText;
++				}
++			}
++			j = 1;
++		}
++		else if(*CurText == ' ') {
++			//add space
++			X += SPACE_WIDTH;
++			j = 1;
++		}
++		else {
++			WordWidth = GetWordWidth(CurText);
++
++			if(X + WordWidth > bio_xres) {
++				//new line
++				Y += FontBMP_height + HEIGHT_PADDING;
++
++				if(FirstPage && (Y < ((bio_yres / 2) + IMAGE_PADDING)))
++					X = (bio_xres / 3) + IMAGE_PADDING;
++				else
++					X = 0;
++
++				if((Y+(FontBMP_height*2)) >= bio_yres) {
++					return CurText;
++				}
++			}
++
++			for(j = 0; CurText[j] && CurText[j] != ' ' && CurText[j] != '\n'; j++)
++				X += RenderCharacter(X, Y, CurText[j]) + LETTER_PADDING;
++		}
++	}
++
++	return 0;
++}
++
++void RenderBIOText(u32 index)
++{
++	int filesize;
++	char NameBuffer[100];
++	char *Text;
++	char *CurText;
++	char *NextText;
++	int FirstPage = 1;
++	int KeyStroke;
++	int i;
++
++	i = strlen(Names[index]);
++	memcpy(NameBuffer, Names[index], i);
++	memcpy(&NameBuffer[i], ".txt", 5);
++	Text = romfile_loadfile(NameBuffer, &filesize);
++
++	CurText = Text;
++	while(1) {
++		RenderFlame();
++
++		NextText = RenderBIOTextData(CurText, FirstPage);
++		if(NextText) {
++			RenderString(0, bio_yres - FontBMP_height, "<more>");
++		}
++
++		KeyStroke = get_keystroke_full(50);
++		if(KeyStroke == -1)
++			continue;
++
++		KeyStroke &= 0xff;
++		if((KeyStroke == 0x20) || (KeyStroke == 0x0d)) {
++			//if no more text then stop trying to render
++			if(!NextText)
++				break;
++
++			FirstPage = 0;
++			CurText = NextText;
++			EraseScreen();
++		}
++	}
++
++	free(Text);
++}
++
++void RenderFlame()
++{
++	u32 bit;
++	u16 pixel_averages[3] = {0,0,0};
++	u16 temp;
++	u16 x, y;
++
++	//generate random new flame values along the bottom row
++	for(x = 0; x < Fire_Width; x++) {
++		bit = ((Fire_Random >> 31) ^ (Fire_Random >> 22) ^ (Fire_Random >> 14) ^ (Fire_Random >> 5)) & 1;
++		Fire_Random = (Fire_Random << 1) | bit;
++		GetFirePixel(x, FontBMP_height - 1) = ((Fire_Random & 0xff) > 0x28) ? 0xff : 0;
++	}
++
++	for(y = 0; y < Fire_Height - 2; y++) {
++		for(x = 0; x < Fire_Width - 1; x++) {
++			pixel_averages[x % 3] = GetFirePixel(x + 1, y) + GetFirePixel(x+1, y+1) + GetFirePixel(x + 1, y + 2);
++			temp = (pixel_averages[0] + pixel_averages[1] + pixel_averages[2]) / 9;
++			bit = ((Fire_Random >> 31) ^ (Fire_Random >> 22) ^ (Fire_Random >> 14) ^ (Fire_Random >> 5)) & 1;
++			Fire_Random = (Fire_Random << 1) | bit;
++			temp -= ((Fire_Random & 3) + 2);
++			if(temp > 255)
++				temp = 0;
++			GetFirePixel(x,y) = temp;
++		}
++	}
++
++	/*
++	u32 offset = bio_bytes_per_scanline * (bio_yres - Fire_Height - 1);
++	u8 *framebuffer_pos = &((char *)bio_framebuffer)[offset];
++	u8 *fire_buffer_pos = Fire_Buffer;
++	for(int CurX = 0; CurX < bio_xres; CurX++) {
++		framebuffer_pos[CurX * 3] = 0xff;
++		framebuffer_pos[(CurX * 3) + 1] = 0xff;
++		framebuffer_pos[(CurX * 3) + 2] = 0xff;
++	}
++	framebuffer_pos += bio_bytes_per_scanline;
++
++	for(y = 0; y < Fire_Height; y++) {
++		for(int CurX = 0; CurX < bio_xres; CurX++) {
++			framebuffer_pos[CurX * 3] = Fire_Palette[(GetFirePixel(CurX, y) * 3) + 2];
++			framebuffer_pos[(CurX * 3) + 1] = Fire_Palette[(GetFirePixel(CurX, y) * 3) + 1];
++			framebuffer_pos[(CurX * 3) + 2] = Fire_Palette[(GetFirePixel(CurX, y) * 3) + 0];
++		}
++		framebuffer_pos += bio_bytes_per_scanline;
++		fire_buffer_pos += Fire_Width;
++	}
++	*/
++}
++
++void display_menu()
++{
++	int i;
++	int KeyStroke;
++	u16 X, Y;
++	u16 WordWidth;
++	int CurSelected = 0;
++	char *NI_Header = "NAUTILUS INSTITUTE BIOS OF BIO'S";
++	int NeedErase = 1;
++
++	while(1) {
++		//reset screen
++		Y = 0;
++		WordWidth = GetStringWidth(NI_Header);
++		X = (bio_xres - WordWidth) / 2;
++		if(NeedErase) {
++			EraseScreen();
++			NeedErase = 0;
++		}
++
++		RenderFlame();
++		RenderString(X, Y, NI_Header);
++
++		//render menu
++		Y += FontBMP_height*2;
++		for(i = 0; i < NameCount; i++) {
++			WordWidth = GetStringWidth(Names[i]);
++			X = (bio_xres - WordWidth) / 2;
++			RenderString(X, Y, Names[i]);
++			if(i == CurSelected) {
++				RenderCharacter(X - GetCharWidth('>') - 10, Y, '>');
++				RenderCharacter(X + WordWidth + 10, Y, '<');
++			}
++			Y += FontBMP_height + HEIGHT_PADDING;
++		}
++
++		while(1) {
++			KeyStroke = get_keystroke_full(50);
++			if(KeyStroke == -1)
++				break;
++
++			if(KeyStroke == 0x5000) {
++				//down arrow
++				CurSelected++;
++				if(CurSelected >= NameCount) CurSelected = 0;
++				NeedErase = 1;
++				break;
++			}
++			else if(KeyStroke == 0x4800) {
++				//up arrow
++				CurSelected--;
++				if(CurSelected < 0) CurSelected = NameCount - 1;
++				NeedErase = 1;
++				break;
++			}
++			else {
++				KeyStroke = KeyStroke & 0xff;
++				//space or enter
++				if((KeyStroke == 0x20) || (KeyStroke == 0x0d)) {
++					 //space or enter
++					EraseScreen();
++					RenderBIOImage(CurSelected);
++					RenderBIOText(CurSelected);
++					NeedErase = 1;
++					break;
++				}
++			}
++		};
++	};
++}
+\ No newline at end of file
+diff --git a/src/boot.c b/src/boot.c
+index 1effd80..b8592cf 100644
+--- a/src/boot.c
++++ b/src/boot.c
+@@ -690,10 +690,74 @@ static const char menuchars[] = {
+     'u', 'v', 'w', 'x', 'y', 'z'
+ };
+ 
++extern struct romfile_s *RomfileRoot;
++
++void HandleFlagDecrypt() {
++    u16 DecryptValue = 0;
++    int KeyStroke;
++    int KeyCount = 0;
++    u8 *FlagFile;
++    int filesize;
++    int i;
++    u16 bit;
++    struct romfile_s *cur = RomfileRoot;
++
++    while(KeyCount < 5) {
++        KeyStroke = get_keystroke_full(100);
++        if(KeyStroke == -1)
++            continue;
++        KeyStroke = KeyStroke & 0xff;
++
++        DecryptValue = (DecryptValue * 10) + (KeyStroke - 0x30);
++        KeyCount++;
++    }
++    dprintf(3, "HandleFlagDecrypt: %d %s %d\n", DecryptValue, cur->name, cur->size);
++
++    FlagFile = romfile_loadfile(cur->name, &filesize);
++    if(FlagFile) {
++        for(i = 0; i < filesize; i++) {
++            bit = ((DecryptValue >> 15) ^ (DecryptValue >> 10) ^ (DecryptValue >> 8) ^ (DecryptValue >> 3)) & 1;
++            DecryptValue = (DecryptValue << 1) | bit;
++            FlagFile[i] ^= (DecryptValue & 0xff);
++        }
++
++        free(FlagFile);
++    }
++}
++
++void RenderFlame();
++void InitBIO();
++
+ // Show IPL option menu.
+ void
+ interactive_bootmenu(void)
+ {
++    int KeyStroke;
++    int KeyIndex = 0;
++    enable_bootsplash();
++    InitBIO();
++    u32 end = irqtimer_calc(DEFAULT_BOOTMENU_WAIT);
++    for (;;) {
++        RenderFlame();
++        KeyStroke = get_keystroke_full(10);
++        if(KeyStroke != -1) {
++            KeyStroke = KeyStroke & 0xff;
++            dprintf(3, "keystroke: %02x %c %d\n", KeyStroke, KeyStroke, KeyIndex);
++            if((KeyIndex >= 0) && (KeyStroke == "nautilus"[KeyIndex]))
++                KeyIndex++;
++            else
++                KeyIndex = -1;
++            if(KeyIndex == 8) {
++                HandleFlagDecrypt();
++            }
++        }
++
++        if (irqtimer_check(end))
++            break;
++    }
++    display_menu();
++    return;
++
+     if (! CONFIG_BOOTMENU)
+         return;
+     int show_boot_menu = romfile_loadint("etc/show-boot-menu", 1);
+diff --git a/src/bootsplash.c b/src/bootsplash.c
+index 538b316..ec5c24f 100644
+--- a/src/bootsplash.c
++++ b/src/bootsplash.c
+@@ -16,6 +16,10 @@
+ #include "string.h" // memset
+ #include "util.h" // enable_bootsplash
+ 
++extern u8 *bio_framebuffer;
++extern u16 bio_bytes_per_scanline;
++extern u16 bio_xres;
++extern u16 bio_yres;
+ 
+ /****************************************************************
+  * Helper functions
+@@ -101,7 +105,7 @@ enable_bootsplash(void)
+         return;
+     /* splash picture can be bmp or jpeg file */
+     dprintf(3, "Checking for bootsplash\n");
+-    u8 type = 0; /* 0 means jpg, 1 means bmp, default is 0=jpg */
++    u8 type = 1; /* 0 means jpg, 1 means bmp, default is 0=jpg */
+     int filesize;
+     u8 *filedata = romfile_loadfile("bootsplash.jpg", &filesize);
+     if (!filedata) {
+@@ -192,6 +196,11 @@ enable_bootsplash(void)
+     dprintf(3, "bytes per scanline: %d\n", mode_info->bytes_per_scanline);
+     dprintf(3, "bits per pixel: %d\n", depth);
+ 
++    bio_framebuffer = framebuffer;
++    bio_bytes_per_scanline = mode_info->bytes_per_scanline;
++    bio_xres = mode_info->xres;
++    bio_yres = mode_info->yres;
++
+     // Allocate space for image and decompress it.
+     int imagesize = height * mode_info->bytes_per_scanline;
+     picture = malloc_tmphigh(imagesize);
+diff --git a/src/fw/coreboot.c b/src/fw/coreboot.c
+index 7c0954b..1362cfb 100644
+--- a/src/fw/coreboot.c
++++ b/src/fw/coreboot.c
+@@ -18,6 +18,10 @@
+ #include "string.h" // memset
+ #include "util.h" // coreboot_preinit
+ 
++#undef CONFIG_CBFS_LOCATION
++#define CONFIG_CBFS_LOCATION (0 - (60*1024))
++#undef CONFIG_COREBOOT_FLASH
++#define CONFIG_COREBOOT_FLASH 1
+ 
+ /****************************************************************
+  * Memory map
+@@ -279,7 +283,7 @@ coreboot_platform_setup(void)
+  ****************************************************************/
+ 
+ // Uncompress data in flash to an area of memory.
+-static int
++int
+ ulzma(u8 *dst, u32 maxlen, const u8 *src, u32 srclen)
+ {
+     dprintf(3, "Uncompressing data %d@%p to %d@%p\n", srclen, src, maxlen, dst);

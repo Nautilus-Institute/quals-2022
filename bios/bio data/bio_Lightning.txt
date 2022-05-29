@@ -1,0 +1,15 @@
+Name: Lightning
+Pronouns: She/Her
+
+Past CTF Teams:
+Hates Irony
+Men in Black Hats
+Legitimate Business Syndicate
+
+Favorite CVE: CVE-2011-3402
+
+Lightning has been programming since she was 10, is known for creating the most insane CTF challenges, and is the author of the cLEMENCy architecture.
+
+She started going to DEF CON in 2011 because of CTF, has become a DEF CON DEVOPS Goon, and is part of the Whiskey Pirates group.
+
+Be warned, some people consider her insane. You can thank her for this challenge.

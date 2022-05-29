@@ -1,0 +1,10 @@
+Name: Itszn
+
+Pronouns: She/Her
+
+Past CTF Teams:
+RPISEC
+
+Favorite CVE: Unknown
+
+Writing JavaScript so bad its good. VMs and such.

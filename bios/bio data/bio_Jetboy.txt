@@ -1,0 +1,13 @@
+Name: Jetboy
+Pronouns: he/him
+
+Past CTF Teams:
+WCSC
+0x28 Thieves
+Team Awesome
+Hates Irony
+Legitimate Business Syndicate
+
+Favorite CVE: CVE-2003-0647
+
+Jetboy loves long walks on the beach, sunsets, medium roast coffee, and the IOS CLI

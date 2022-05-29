@@ -1,0 +1,16 @@
+server {
+    listen 80;
+
+    location /jit/ {
+        include proxy_params;
+
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://localhost:8080/;
+    }
+
+    location /  {
+        include /etc/nginx/mime.types;
+        root /static/;
+        try_files $uri $uri/ =404;
+    }
+}

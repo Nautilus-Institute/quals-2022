@@ -1,0 +1,12 @@
+Name: Vito
+Pronouns: he/him
+
+Past CTF Teams:
+WCSC
+0x28 Thieves
+Legitimate Business Syndicate
+Mission Control (Hack-A-Sat)
+
+Favorite CVE: CWE-666
+
+Vito is a world-recognized CTF thought leader, with over ten successful CTF games run, speeches about CTF on multiple continents, and a pretty good showing at the 35C3 Junior CTF.

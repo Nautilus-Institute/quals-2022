@@ -1,0 +1,10 @@
+Name: fish
+Pronouns: he/him
+
+Past CTF Teams:
+Blue-Lotus
+Shellphish
+
+Favorite CVE: Unknown
+
+fish has been playing CTFs since 2010 and is a diehard reverse engineer for anything without source code.
