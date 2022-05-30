@@ -34,7 +34,7 @@ func startContainer(token string) error {
 	url := "http://127.0.0.1:8080"
 
 	resp, err := docker.ContainerCreate(ctx, &container.Config{
-		Image: "shellweplayagame.azurecr.io/quals-2022/discoteq/discoteq-challenge:latest",
+		Image: "discoteq-challenge:latest",
 		Cmd:   []string{"timeout", "120", "/run.sh", url, token, "auto", "/responses.txt"},
 	},nil, nil, nil, "")
 	if err != nil {
