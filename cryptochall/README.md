@@ -20,12 +20,13 @@ You can:
 2. Encrypt a Message -> Encrypts a message you input with the `Cipher` object of your choosing.
 3. Decrypt a Message -> Decrypts a message you input with the `Cipher` object of your choosing.
 
-Cipher is a pure abstract base class. There are four (technically five) derived classes.
+Cipher is a pure abstract base class. There are four (technically five) derived classes. Players had to reverse engineer the encryption algorithms from the stripped binary, algorithms were given psuedonyms:
+
 1. Missouri Encryption Standard (MES): b64 encode/decode
 2. Algorithm MCCCXXXVII: Caesar's Cipher
 3. Algorithm 13: ROT14 (derived from Algorithm MCCCXXXVII)
 4. Algorithm X: RSA
-5. Flag One Time Pad - a hidden class that was never called but contains encrypt function that reads in the flag. 
+5. Flag One Time Pad - a hidden class that was never invoked but contains encrypt function that reads in the flag and XORs it with your message. 
 
 All of the challenges rely on a custom `BigInt` class. 
 
