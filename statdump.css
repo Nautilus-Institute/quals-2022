@@ -1,0 +1,138 @@
+/*   background: linear-gradient(0deg,
+ *                            #373e4f 0%,
+ *                            #22242f 64%,
+ *                            #62575a 74%,
+ *                            #ffa73c 75%,
+ *                            #feea8e 77%,
+ *                            #ffe1b2 82%,
+ *                            #b9c4d1 100%)
+ *                              */
+body {
+  background-color: #373e4f;
+  color: #feea8e;
+}
+
+a:link, a:visited {
+  color: #ff9b00;
+}
+
+main h1, main h2, main h3, main h4, main h5, main h6 {
+  color: #ffe1b2;
+}
+
+@font-face {
+  font-family: "Jost";
+  src: url(asset-path("Jost-VariableFont_wght.woff2")) format("woff2"), local("Jost");
+}
+@font-face {
+  font-family: "Jost";
+  font-style: italic;
+  src: url(asset-path("Jost-Italic-VariableFont_wght.woff2")) format("woff2"), local("Jost Italic");
+}
+@font-face {
+  font-family: "Overpass Mono";
+  font-weight: 700;
+  src: url(asset-path("overpass-mono-bold.woff2")) format("woff2"), local("Overpass Mono");
+}
+@font-face {
+  font-family: "Overpass Mono";
+  font-weight: 300;
+  src: url(asset-path("overpass-mono-light.woff2")) format("woff2"), local("Overpass Mono");
+}
+@font-face {
+  font-family: "Overpass Mono";
+  font-weight: 400;
+  src: url(asset-path("overpass-mono-regular.woff2")) format("woff2"), local("Overpass Mono");
+}
+@font-face {
+  font-family: "Overpass Mono";
+  font-weight: 600;
+  src: url(asset-path("overpass-mono-semibold.woff2")) format("woff2"), local("Overpass Mono");
+}
+body, input, button, h1, h2, h3, h4, h5, h6 {
+  font-family: "Jost", "Futura", Helvetica, "Arial Unicode MS", Arial, sans-serif;
+  font-size: 14pt;
+}
+
+.explanation {
+  margin-top: 0.2em;
+  font-size: 0.8em;
+}
+
+.small {
+  font-size: 0.6em;
+}
+
+.time_t, .epoch {
+  font-family: "Overpass Mono", "Ubuntu Mono", "Menlo", "Consolas", "Courier";
+}
+
+code, fixed {
+  font-family: "Overpass Mono", "Ubuntu Mono", "Menlo", "Consolas", "Courier";
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Jost", "Futura", Helvetica, "Arial Unicode MS", Arial, sans-serif;
+}
+
+h1, h3, h5 {
+  font-weight: 800;
+}
+
+h2, h4, h6 {
+  font-weight: 600;
+}
+
+h1, h2 {
+  font-size: 1.618rem;
+}
+
+h3, h4 {
+  font-size: 1.4rem;
+}
+
+h5, h6 {
+  font-size: 1.2rem;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  width: 100%;
+  height: 100%;
+}
+body #content {
+  width: 980px;
+  margin: 12px auto;
+  padding: 12px;
+}
+body #content nav.big {
+  padding: 12px;
+}
+body #content nav.big ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+body #content nav.big ul li a {
+  font-size: 2em;
+  text-decoration: none;
+  font-style: italic;
+  font-weight: 700;
+}
+body #content nav ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+body #content nav ul li {
+  display: inline-block;
+}
+body #content nav ul li a {
+  display: inline-block;
+  padding: 0.5em;
+}
+
+/*# sourceMappingURL=statdump.css.map */
