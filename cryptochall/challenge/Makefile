@@ -1,6 +1,6 @@
 
 CC=g++
-# CFLAGS= -Wall -fno-rtti
+CFLAGS= -Wall -fno-rtti
 CFLAGS= -Wall
 LDFLAGS=
 SRCS=$(wildcard *.cpp) $(wildcard *.h)
@@ -13,7 +13,7 @@ build: $(BIN)
 
 $(BIN): $(SRCS)
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
-	# strip --strip-all $(BIN)
+	strip --strip-all $(BIN)
 
 
 clean: 
