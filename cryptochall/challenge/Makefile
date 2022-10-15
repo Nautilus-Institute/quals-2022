@@ -1,7 +1,6 @@
 
 CC=g++
 CFLAGS= -Wall -fno-rtti
-CFLAGS= -Wall
 LDFLAGS=
 SRCS=$(wildcard *.cpp) $(wildcard *.h)
 
